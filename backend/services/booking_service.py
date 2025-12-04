@@ -1,98 +1,221 @@
 # backend/services/booking_service.py
+
 from sqlmodel import Session, select
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Dict, Optional
 from .payment_service import PaymentService
 from ..model import Payment, Flight
 from datetime import datetime
+from ..config import USE_FAKE_PAYMENTS
+import random
+import string
 
+
+# -------------------------------
+# FAKE HELPERS
+# -------------------------------
+def _fake_card():
+    brands = ["Visa", "Mastercard", "Amex", "RuPay"]
+    brand = random.choice(brands)
+    last4 = str(random.randint(1000, 9999))
+    return last4, brand
+
+
+def _fake_gateway():
+    providers = [
+        "VisaNet", "MasterSwitch", "AmexRoute",
+        "RuPaySwitch", "PayFlex", "SwiftPay",
+        "NetClear", "TestRail", "UniRoute"
+    ]
+    return "FakeGateway-" + random.choice(providers)
+
+
+def _fake_upi():
+    names = ["rahul", "avi", "demo", "airnova", "testuser", "payment"]
+    handles = ["upi", "ybl", "okaxis", "oksbi", "okicici", "okhdfcbank"]
+    return f"{random.choice(names)}@{random.choice(handles)}"
+
+
+def _fake_reference():
+    return "BRN" + "".join(random.choices(string.digits, k=9))
+
+
+def _simulate_failure(prob=0.05):
+    return random.random() < prob
+
+
+# -------------------------------
+# BOOKING SERVICE
+# -------------------------------
 class BookingService:
+
     @staticmethod
-    def create_razorpay_order(session: Session, customer_id: int, flight_id: int, seats: int = 1, currency: str = "INR", idempotency_key: Optional[str] = None) -> Dict:
+    def create_razorpay_order(
+        session: Session,
+        customer_id: int,
+        flight_id: int,
+        seats: int = 1,
+        currency: str = "INR",
+        idempotency_key: Optional[str] = None
+    ) -> Dict:
+
         if seats < 1:
-            raise ValueError("seats must be >= 1")
+            raise ValueError("Seats must be >= 1")
 
         flight = session.get(Flight, flight_id)
         if not flight:
-            raise ValueError("flight not found")
-        if flight.F_Seats < seats:
-            raise ValueError("not enough seats available")
+            raise ValueError("Flight not found")
 
-        # TODO: replace price_per_seat with real flight price
-        price_per_seat = 1000.00   # ₹1000
-        total_amount_paise = int(price_per_seat * seats * 100)  # paise
+        if flight.Seats < seats:
+            raise ValueError("Not enough seats available")
 
-        notes = {"customer_id": str(customer_id), "flight_id": str(flight_id), "seats": str(seats)}
-        order = PaymentService.create_order(total_amount_paise, currency=currency, notes=notes)
+        # Price logic
+        price_per_seat = 1000.00
+        total_amount_paise = int(price_per_seat * seats * 100)
 
-        # Create a pending local payment record linking the order_id
-        pay = Payment(
-            Payment_Customer_ID=customer_id,
-            Payment_Cost=total_amount_paise / 100.0,
-            Payment_Tax=0.0,
-            Payment_Date=datetime.utcnow().date(),
-            Payment_Type="razorpay_order",
-            Payment_Card_No=None,
-            F_Company=flight.F_Company,
-            gateway_provider="razorpay",
-            gateway_txn_id=order["order_id"],
-            status="created",
-            idempotency_key=idempotency_key
+        notes = {
+            "customer_id": str(customer_id),
+            "flight_id": str(flight_id),
+            "seats": str(seats)
+        }
+
+        # Razorpay order (real or fake)
+        order = PaymentService.create_order(
+            amount_cents=total_amount_paise,
+            currency=currency,
+            notes=notes
         )
+
+        # -------------------------------
+        # FAKE PAYMENT DETAILS
+        # -------------------------------
+        if USE_FAKE_PAYMENTS:
+            # 70% card, 30% UPI
+            use_card = random.random() < 0.7
+
+            if use_card:
+                fake_last4, fake_brand = _fake_card()
+                pay_type = "card"
+            else:
+                fake_last4, fake_brand = None, None
+                pay_type = "UPI"
+
+            fake_gateway = _fake_gateway()
+
+        else:
+            fake_last4 = None
+            fake_brand = None
+            fake_gateway = "razorpay"
+            pay_type = "card"
+
+        # -------------------------------
+        # Create pending payment row
+        # -------------------------------
+        payment = Payment(
+            Customer_ID=customer_id,
+            Company_ID=flight.Company_ID,
+            Amount=total_amount_paise / 100.0,
+            Tax=0.0,
+            Payment_Date=datetime.utcnow(),
+            Payment_Type=pay_type,
+
+            Card_Last4=fake_last4,
+            Card_Brand=fake_brand,
+
+            Gateway_Provider=fake_gateway,
+            Gateway_Txn_ID=order["order_id"],
+
+            Status="authorized" if USE_FAKE_PAYMENTS else "created",
+            Idempotency_Key=idempotency_key
+        )
+
         try:
-            session.add(pay)
+            session.add(payment)
             session.commit()
-            session.refresh(pay)
+            session.refresh(payment)
         except SQLAlchemyError:
             session.rollback()
             raise
 
-        return {"order_id": order["order_id"], "amount": order["amount"], "currency": order["currency"], "payment_id": pay.Payment_ID}
+        return {
+            "order_id": order["order_id"],
+            "amount": order["amount"],
+            "currency": order["currency"],
+            "payment_id": payment.Payment_ID
+        }
+
+    # --------------------------------------------------------------------
 
     @staticmethod
-    def finalize_on_payment_captured(session: Session, razorpay_payment_id: str, razorpay_order_id: str):
-        # fetch local payment by order id
-        stmt = select(Payment).where(Payment.gateway_txn_id == razorpay_order_id)
+    def finalize_on_payment_captured(
+        session: Session,
+        payment_id: str,
+        order_id: str
+    ):
+        # Find payment using order ID
+        stmt = select(Payment).where(Payment.Gateway_Txn_ID == order_id)
         payment = session.exec(stmt).first()
+
         if not payment:
-            raise ValueError("local payment record not found")
+            raise ValueError("Local payment record not found")
 
-        # fetch payment details from Razorpay (optional)
-        rp_payment = PaymentService.fetch_payment(razorpay_payment_id)
+        # NOTE: pass order_id so fake mode can return the correct notes
+        rp_data = PaymentService.fetch_payment(payment_id, order_id=order_id)
+        notes = rp_data.get("notes", {})
 
-        # read metadata from local payment or from rp_payment['notes'] if used
-        # decrement seats using metadata stored earlier in order notes
-        flight_id = None
-        seats = 1
-        try:
-            if "flight_id" in rp_payment.get("notes", {}):
-                flight_id = int(rp_payment["notes"]["flight_id"])
-                seats = int(rp_payment["notes"].get("seats", 1))
-        except Exception:
-            pass
+        flight_id = int(notes.get("flight_id", 0))
+        seats = int(notes.get("seats", 1))
 
-        if flight_id is None:
-            # try reading from local payment.F_Company mapping (best-effort)
-            raise ValueError("flight_id not present in payment notes")
+        if not flight_id:
+            raise ValueError("flight_id missing in payment notes")
 
         flight = session.get(Flight, flight_id)
         if not flight:
-            raise ValueError("flight not found")
+            raise ValueError("Flight not found")
+
+        # -------------------------------
+        # 5% FAILURE SIMULATION
+        # -------------------------------
+        if USE_FAKE_PAYMENTS and _simulate_failure():
+            payment.Status = "failed"
+            payment.Gateway_Txn_ID = payment_id
+            payment.Captured_At = None
+
+            session.add(payment)
+            session.commit()
+            return payment
+
+        # -------------------------------
+        # SUCCESS: CAPTURED
+        # -------------------------------
+        payment.Status = "captured"
+        payment.Gateway_Txn_ID = payment_id
+        payment.Captured_At = datetime.utcnow()
+
+        # UPI flow
+        if USE_FAKE_PAYMENTS and payment.Payment_Type == "UPI":
+            payment.Card_Last4 = None
+            payment.Card_Brand = "UPI"
+            payment.Gateway_Provider = _fake_gateway()
+
+        # Card flow
+        else:
+            # If missing, generate new realistic card details
+            if not payment.Card_Last4 or not payment.Card_Brand:
+                last4, brand = _fake_card()
+                payment.Card_Last4 = last4
+                payment.Card_Brand = brand
+
+        # Deduct seats only on success
+        flight.Seats -= seats
 
         try:
-            payment.status = "captured"
-            payment.gateway_txn_id = razorpay_payment_id  # store payment id
-            payment.last4 = None
-            payment.card_brand = rp_payment.get("method")  # rough
-            payment.captured_at = datetime.utcnow()
             session.add(payment)
-
-            flight.F_Seats -= seats
             session.add(flight)
-
             session.commit()
             session.refresh(payment)
             return payment
+
         except SQLAlchemyError:
             session.rollback()
             raise

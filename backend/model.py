@@ -1,17 +1,18 @@
-# backend/model.py
-from sqlmodel import SQLModel, Field, Relationship, Column, JSON
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
 from enum import Enum
-from typing import Dict
 
-# =========================================================
-# ENUMS
-# =========================================================
+from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import Column
+from sqlalchemy import JSON as SAJSON
+
+
+# Enums
 class FlightStatus(str, Enum):
     ON_TIME = "On-Time"
     DELAYED = "Delayed"
     CANCELLED = "Cancelled"
+
 
 class BookingStatus(str, Enum):
     CONFIRMED = "CONFIRMED"
@@ -19,14 +20,16 @@ class BookingStatus(str, Enum):
     REBOOKED = "REBOOKED"
     REFUNDED = "REFUNDED"
 
+
 class UserRole(str, Enum):
     CUSTOMER = "customer"
     ADMIN = "admin"
 
-# =========================================================
-# COMPANY MODEL
-# =========================================================
+
+# Company
 class Company(SQLModel, table=True):
+    __tablename__ = "company"
+
     Company_ID: Optional[int] = Field(default=None, primary_key=True)
     Name: str
     Type: str
@@ -35,10 +38,11 @@ class Company(SQLModel, table=True):
     flights: List["Flight"] = Relationship(back_populates="company")
     payments: List["Payment"] = Relationship(back_populates="company")
 
-# =========================================================
-# CUSTOMER MODEL
-# =========================================================
+
+# Customer
 class Customer(SQLModel, table=True):
+    __tablename__ = "customer"
+
     Customer_ID: Optional[int] = Field(default=None, primary_key=True)
     Name: str
     Email: str
@@ -49,10 +53,11 @@ class Customer(SQLModel, table=True):
     bookings: List["Booking"] = Relationship(back_populates="customer")
     payments: List["Payment"] = Relationship(back_populates="customer")
 
-# =========================================================
-# FLIGHT MODEL
-# =========================================================
+
+# Flight
 class Flight(SQLModel, table=True):
+    __tablename__ = "flight"
+
     Flight_ID: Optional[int] = Field(default=None, primary_key=True)
     Company_ID: int = Field(foreign_key="company.Company_ID")
 
@@ -62,20 +67,24 @@ class Flight(SQLModel, table=True):
     Arrival_Time: datetime
     Seats: int
 
+    # NEW: price per seat in rupees (float)
+    Price_Per_Seat: float = Field(default=1000.0)
+
     Status: FlightStatus = Field(default=FlightStatus.ON_TIME)
 
     company: Optional[Company] = Relationship(back_populates="flights")
     bookings: List["Booking"] = Relationship(back_populates="flight")
 
-# =========================================================
-# BOOKING MODEL
-# =========================================================
+
+# Booking
 class Booking(SQLModel, table=True):
+    __tablename__ = "booking"
+
     Booking_ID: Optional[int] = Field(default=None, primary_key=True)
     Customer_ID: int = Field(foreign_key="customer.Customer_ID")
     Flight_ID: int = Field(foreign_key="flight.Flight_ID")
 
-    Seats: int = 1
+    Seats: int = Field(default=1)
     Status: BookingStatus = Field(default=BookingStatus.CONFIRMED)
 
     Razorpay_Order_ID: Optional[str] = None
@@ -86,17 +95,18 @@ class Booking(SQLModel, table=True):
     customer: Optional[Customer] = Relationship(back_populates="bookings")
     flight: Optional[Flight] = Relationship(back_populates="bookings")
 
-# =========================================================
-# PAYMENT MODEL
-# =========================================================
+
+# Payment
 class Payment(SQLModel, table=True):
+    __tablename__ = "payment"
+
     Payment_ID: Optional[int] = Field(default=None, primary_key=True)
     Customer_ID: int = Field(foreign_key="customer.Customer_ID")
     Company_ID: Optional[int] = Field(default=None, foreign_key="company.Company_ID")
 
     Amount: float
     Tax: float
-    Payment_Date: datetime
+    Payment_Date: datetime = Field(default_factory=datetime.utcnow)
     Payment_Type: str
 
     Card_Last4: Optional[str] = None
@@ -111,27 +121,35 @@ class Payment(SQLModel, table=True):
     company: Optional[Company] = Relationship(back_populates="payments")
 
 
-# --- fixed models (replace your earlier PriceAlert/Notification/GroupBooking) ---
+# PriceAlert / Notification / GroupBooking
 class PriceAlert(SQLModel, table=True):
+    __tablename__ = "price_alert"
+
     PriceAlert_ID: Optional[int] = Field(default=None, primary_key=True)
     Customer_ID: int = Field(foreign_key="customer.Customer_ID")
     Route: str
     Target_Price: float
     Active: bool = Field(default=True)
     Created_At: datetime = Field(default_factory=datetime.utcnow)
-    meta: Optional[dict] = Field(default=None, sa_column=Column(JSON, nullable=True))
+    meta: Optional[Dict] = Field(default=None, sa_column=Column(SAJSON, nullable=True))
+
 
 class Notification(SQLModel, table=True):
+    __tablename__ = "notification"
+
     Notification_ID: Optional[int] = Field(default=None, primary_key=True)
     Customer_ID: int = Field(foreign_key="customer.Customer_ID")
     Kind: str
-    Payload: Optional[dict] = Field(default=None, sa_column=Column(JSON, nullable=True))
+    Payload: Optional[Dict] = Field(default=None, sa_column=Column(SAJSON, nullable=True))
     Sent: bool = Field(default=False)
     Created_At: datetime = Field(default_factory=datetime.utcnow)
 
+
 class GroupBooking(SQLModel, table=True):
+    __tablename__ = "group_booking"
+
     Group_ID: Optional[int] = Field(default=None, primary_key=True)
     Name: Optional[str] = None
     Owner_Customer_ID: int = Field(foreign_key="customer.Customer_ID")
-    Members: Optional[list] = Field(default=None, sa_column=Column(JSON, nullable=True))  # store list as JSON
+    Members: Optional[List] = Field(default=None, sa_column=Column(SAJSON, nullable=True))
     Created_At: datetime = Field(default_factory=datetime.utcnow)

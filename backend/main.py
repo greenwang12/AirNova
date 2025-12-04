@@ -7,12 +7,12 @@ from .db import create_db_and_tables
 from .routes.customers import router as customers_router
 from .routes.flights import router as flights_router
 from .routes.bookings import router as bookings_router
-from backend.routes import auth
+from .routes import auth
 from .routes.groups import router as groups_router
 from .routes.notifications import router as notifications_router
 from .routes.price_evaluate import router as price_eval_router
 from .routes.companies import router as companies_router
-
+from .routes.price_predict import router as price_predict_router
 
 
 app = FastAPI(
@@ -164,4 +164,5 @@ app.include_router(auth.router)
 app.include_router(groups_router)
 app.include_router(notifications_router)
 app.include_router(price_eval_router)
+app.include_router(price_predict_router)
 app.include_router(companies_router)

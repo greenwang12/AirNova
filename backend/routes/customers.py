@@ -28,28 +28,35 @@ def is_hex_sha256(s: str) -> bool:
 
 @router.post("/add")
 def add_customer(customer: Customer, session: Session = Depends(get_session)):
-    """
-    Add a customer:
-    - If provided password already looks like argon2/bcrypt/sha256, keep as-is.
-    - Otherwise hash plaintext with Argon2 (pwd.hash).
-    """
-    raw = (customer.Password or "").strip()
+    # ignore client-sent ID so DB assigns PK
+    data = customer.dict(exclude_unset=True)
+    data.pop("Customer_ID", None)
+
+    raw = (data.get("Password", "") or "").strip()
     if not raw:
         raise HTTPException(status_code=400, detail="Password required")
 
     # preserve existing hash formats
     if raw.startswith("$argon2") or raw.startswith("$2"):
-        customer.Password = raw
+        data["Password"] = raw
     elif is_hex_sha256(raw):
-        customer.Password = raw
+        data["Password"] = raw
     else:
-        # plaintext -> hash with Argon2 (configured above)
-        customer.Password = pwd.hash(raw)
+        data["Password"] = pwd.hash(raw)
 
-    session.add(customer)
+    new_customer = Customer(**data)
+    session.add(new_customer)
     session.commit()
-    session.refresh(customer)
-    return customer
+
+    try:
+        session.refresh(new_customer)
+    except Exception:
+        if new_customer.Email:
+            new_customer = session.exec(select(Customer).where(Customer.Email == new_customer.Email)).one()
+        else:
+            raise
+
+    return new_customer
 
 @router.get("/all")
 def get_all_customers(session: Session = Depends(get_session)):
