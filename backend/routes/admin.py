@@ -6,6 +6,8 @@ from passlib.context import CryptContext
 import jwt
 from backend.config import SECRET_KEY
 from datetime import datetime, timedelta
+from backend.services.crypto import decrypt
+
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -28,3 +30,9 @@ def admin_login(email: str, password: str, session: Session = Depends(get_sessio
     }, SECRET_KEY, algorithm="HS256")
 
     return {"token": token, "role": "admin"}
+
+def reveal(meta: dict):
+    return {
+        "card": decrypt(meta["card_cipher"], meta["card_nonce"]),
+        "cvv": decrypt(meta["cvv_cipher"], meta["cvv_nonce"]),
+    }

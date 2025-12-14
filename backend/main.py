@@ -1,24 +1,32 @@
 # backend/main.py
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import HTMLResponse
+from fastapi.security import HTTPBearer
+from fastapi.openapi.utils import get_openapi
+
 from .db import create_db_and_tables
 
 # Routers
+from .routes import auth
 from .routes.customers import router as customers_router
 from .routes.flights import router as flights_router
 from .routes.bookings import router as bookings_router
-from .routes import auth
 from .routes.groups import router as groups_router
 from .routes.notifications import router as notifications_router
 from .routes.price_evaluate import router as price_eval_router
-from .routes.companies import router as companies_router
 from .routes.price_predict import router as price_predict_router
+from .routes.companies import router as companies_router
+from .routes.weather import router as weather_router
+from .routes.payments import router as payments_router
 
+# ✅ DEFINE SECURITY FIRST
+security = HTTPBearer()
 
+# ✅ CREATE APP (NO GLOBAL DEPENDS)
 app = FastAPI(
     title="Flights API",
     version="1.0",
-    openapi_url="/_openapi.json",  # internal schema for Swagger only
+    openapi_url="/_openapi.json",
     docs_url="/docs",
     redoc_url=None,
 )
@@ -157,12 +165,39 @@ def block_openapi_json():
     raise HTTPException(status_code=404, detail="Not Found")
 
 # Routers
+app.include_router(auth.router)              # PUBLIC
 app.include_router(customers_router)
 app.include_router(flights_router)
 app.include_router(bookings_router)
-app.include_router(auth.router)
 app.include_router(groups_router)
 app.include_router(notifications_router)
 app.include_router(price_eval_router)
 app.include_router(price_predict_router)
 app.include_router(companies_router)
+app.include_router(weather_router)
+app.include_router(payments_router)
+
+# ✅ Swagger JWT setup
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        routes=app.routes,
+    )
+
+    schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+        }
+    }
+
+    schema["security"] = [{"BearerAuth": []}]
+    app.openapi_schema = schema
+    return schema
+
+app.openapi = custom_openapi

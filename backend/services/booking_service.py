@@ -69,9 +69,9 @@ class BookingService:
         if flight.Seats < seats:
             raise ValueError("Not enough seats available")
 
-        # Price logic
-        price_per_seat = 1000.00
-        total_amount_paise = int(price_per_seat * seats * 100)
+        # Price logic — use flight's price if present
+        price_per_seat = getattr(flight, "Price_Per_Seat", 1000.00) or 1000.00
+        total_amount_paise = int(float(price_per_seat) * seats * 100)
 
         notes = {
             "customer_id": str(customer_id),
