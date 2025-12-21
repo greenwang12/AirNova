@@ -1,17 +1,18 @@
 import random
-from datetime import datetime, timedelta
+from datetime import timedelta
 from sqlmodel import Session, select
 from backend.db import engine
 from backend.model import Payment, Booking, Flight, Company
 
-CARD_BRANDS = [
-    "Visa",
-    "Mastercard",
-    "Amex",
-]
-
+# -----------------------------
+# Payment settings
+# -----------------------------
+CARD_BRANDS = ["Visa", "Mastercard", "Amex"]
 PAYMENT_TYPES = ["Card", "UPI", "NetBanking"]
 
+# -----------------------------
+# Start session
+# -----------------------------
 with Session(engine) as session:
     bookings = session.exec(select(Booking)).all()
 
@@ -25,31 +26,36 @@ with Session(engine) as session:
         if not flight or not company:
             continue
 
-        # 💰 realistic pricing
-        base = flight.Price_Per_Seat * b.Seats
-        surge = random.uniform(0.9, 1.15)              # demand variation
-        base = round(base * surge, 2)
+        # -----------------------------
+        # Calculate realistic payment amounts
+        # -----------------------------
+        base_amount = flight.Price_Per_Seat * b.Seats
+        surge_multiplier = random.uniform(0.9, 1.15)  # simulate demand variations
+        base_amount = round(base_amount * surge_multiplier, 2)
+        tax = round(base_amount * 0.05, 2)            # 5% GST
+        total_amount = round(base_amount + tax, 2)
 
-        tax = round(base * 0.05, 2)                     # 5% GST
-        total = round(base + tax, 2)
+        # Payment timestamp shortly after booking
+        paid_at = b.Created_At + timedelta(minutes=random.randint(2, 30))
 
-        paid_at = b.Created_At + timedelta(
-            minutes=random.randint(2, 30)
-        )
+        # Random payment type
+        payment_type = random.choice(PAYMENT_TYPES)
 
+        # -----------------------------
+        # Create payment record
+        # -----------------------------
         payment = Payment(
             Customer_ID=b.Customer_ID,
+            Booking_ID=b.Booking_ID,  # ✅ include Booking_ID to avoid NULL error
             Company_ID=company.Company_ID,
-            Amount=total,
+            Amount=total_amount,
             Tax=tax,
             Payment_Date=paid_at,
-            Payment_Type=random.choice(PAYMENT_TYPES),
-            Card_Last4=str(random.randint(1000, 9999)),
-            Card_Brand=random.choice(CARD_BRANDS),
-            Gateway_Provider=random.choice(
-                ["Razorpay", "Stripe", "PayU"]
-            ),
-            Gateway_Txn_ID=f"TXN{random.randint(100000000,999999999)}",
+            Payment_Type=payment_type,
+            Card_Last4=str(random.randint(1000, 9999)) if payment_type == "Card" else None,
+            Card_Brand=random.choice(CARD_BRANDS) if payment_type == "Card" else None,
+            Gateway_Provider=random.choice(["Razorpay", "Stripe", "PayU"]),
+            Gateway_Txn_ID=f"{company.Name[:2].upper()}{random.randint(100000000, 999999999)}",
             Captured_At=paid_at,
             Status="captured",
         )
@@ -58,4 +64,4 @@ with Session(engine) as session:
 
     session.commit()
 
-print("Inserted realistic payment data.")
+print("✅ Payments seeded successfully")

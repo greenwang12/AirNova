@@ -29,21 +29,62 @@ function AppRoutes() {
       {!hideHeader && <Header />}
 
       <Routes>
+        {/* ---------- PUBLIC ROUTES ---------- */}
         <Route path="/" element={<Splash />} />
         <Route path="/login" element={<Login />} />
 
-        <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
-        <Route path="/SearchFlights" element={<Protected><SearchFlights /></Protected>} />
-        <Route path="/profile" element={<Protected><Profile /></Protected>} />
-        <Route path="/flights" element={<Protected><Flights /></Protected>} />
-        <Route path="/bookings/my" element={<Protected><Bookings /></Protected>} />
-        <Route path="/trips" element={<Protected><MyTrips /></Protected>} />
-        <Route path="/companies" element={<Protected><Companies /></Protected>} />
-        <Route path="/weather" element={<Protected><Weather /></Protected>} />
-        <Route path="/predict" element={<Protected><PricePredict /></Protected>} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/SearchFlights" element={<SearchFlights />} />
+        <Route path="/flights" element={<Flights />} />
+        <Route path="/companies" element={<Companies />} />
+        <Route path="/weather" element={<Weather />} />
+        <Route path="/predict" element={<PricePredict />} />
 
-        <Route path="/book/:id" element={<Protected><BookFlight /></Protected>} />
-        <Route path="/payment" element={<Protected><Payment /></Protected>} />
+        {/* ---------- PROTECTED ROUTES ---------- */}
+        <Route
+          path="/book/:id"
+          element={
+            <Protected>
+              <BookFlight />
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/payment"
+          element={
+            <Protected>
+              <Payment />
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/bookings/my"
+          element={
+            <Protected>
+              <Bookings />
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/trips"
+          element={
+            <Protected>
+              <MyTrips />
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <Protected>
+              <Profile />
+            </Protected>
+          }
+        />
       </Routes>
     </>
   );

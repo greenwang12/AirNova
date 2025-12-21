@@ -14,8 +14,24 @@ type Flight = {
   Available_Seats: number;
   company?: {
     Name: string;
-    Logo_URL?: string;
   };
+};
+
+/* ================= LOGO MAPPING ================= */
+const airlineLogos: Record<string, string> = {
+  "Air India": "/logos/air-india.jpg",
+  "Lufthansa": "/logos/Lufthansa.png",
+  "British Airways": "/logos/british-airways.png",
+  "Gulf Air": "/logos/gulfair.svg",
+  "Vistara": "/logos/vistara.jpeg",
+  "SpiceJet": "/logos/spicejet.png",
+  "Singapore Airlines": "/logos/singapore-airlines.png",
+  "Akasa Air": "/logos/Akasa-Air-Emblem.png",
+  "IndiGo": "/logos/indigo.png",
+  "Qatar Airways": "/logos/Qatar-Airways.png",
+  "Emirates": "/logos/emirates.jpg",
+  "Caribbean Airlines": "/logos/caribbean.jpg",
+  "American Airlines": "/logos/americanairlines.jpg",
 };
 
 /* ================= COMPONENT ================= */
@@ -29,29 +45,14 @@ export default function FlightCard({ f }: { f: Flight }) {
   const h = Math.floor(durMin / 60);
   const m = durMin % 60;
 
-  // Airline logo fallback
-  const logoFallback: Record<string, string> = {
-    "Air India": "/logos/air-india.svg.png",
-    "Lufthansa": "/logos/lufthansa.svg.png",
-    "British Airways": "/logos/british-airways.png",
-    "Gulf Air": "/logos/gulf-air.svg.png",
-    "Vistara": "/logos/Vistara.jpg",
-    "Singapore Airlines": "/logos/singapore-airlines.png",
-    "Akasa Air": "/logos/Akasa-Air-Emblem.png",
-  };
-
   return (
     <div className="flight-card">
       {/* Airline */}
       <div className="airline">
         <img
           className="airline-logo"
-          src={f.company?.Logo_URL}
+          src={airlineLogos[f.company?.Name ?? ""] || "/logos/default.png"}
           alt={f.company?.Name}
-          onError={e => {
-            e.currentTarget.src =
-              logoFallback[f.company?.Name ?? ""] || "/logos/default.png";
-          }}
         />
         <div>
           <div className="airline-name">{f.company?.Name}</div>
@@ -70,9 +71,7 @@ export default function FlightCard({ f }: { f: Flight }) {
       {/* Duration */}
       <div className="duration">
         <div className="dur">{h}h {m}m</div>
-        <div className="stop">
-          {f.Stops === 0 ? "Non-stop" : `${f.Stops} stop`}
-        </div>
+        <div className="stop">{f.Stops === 0 ? "Non-stop" : `${f.Stops} stop`}</div>
       </div>
 
       {/* Arrival */}
@@ -88,17 +87,12 @@ export default function FlightCard({ f }: { f: Flight }) {
         <div className="price">₹ {f.Price_Per_Seat.toLocaleString()}</div>
 
         {/* Navigate to booking page */}
-        <button
-          className="book-btn"
-          onClick={() => nav(`/book/${f.Flight_ID}`)}
-        >
+        <button className="book-btn" onClick={() => nav(`/book/${f.Flight_ID}`)}>
           BOOK NOW
         </button>
 
         {f.Available_Seats <= 5 && (
-          <div className="seats-left">
-            ⚠ {f.Available_Seats} seats left
-          </div>
+          <div className="seats-left">⚠ {f.Available_Seats} seats left</div>
         )}
       </div>
     </div>

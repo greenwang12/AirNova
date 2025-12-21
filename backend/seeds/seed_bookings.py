@@ -24,7 +24,7 @@ with Session(engine) as session:
             Customer_ID=user.Customer_ID,
             Flight_ID=flight.Flight_ID,
             Seats=seats,
-            Status=BookingStatus.CONFIRMED,
+            Status=BookingStatus.PAID,
             Razorpay_Order_ID=f"order_{random.randint(100000,999999)}",
             Razorpay_Payment_ID=f"pay_{random.randint(100000,999999)}",
             Created_At=datetime.utcnow()
