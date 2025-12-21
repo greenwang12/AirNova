@@ -1,0 +1,91 @@
+.flight-card {
+  display: grid;
+  grid-template-columns: 240px 110px 160px 110px 160px;
+  align-items: center;
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+}
+
+.airline {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.airline-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.airline-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.flight-code {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Time */
+.time-block {
+  text-align: center;
+}
+
+.time {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.city {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* Duration */
+.duration {
+  text-align: center;
+}
+
+.dur {
+  font-size: 13px;
+  margin-bottom: 6px;
+  color: #374151;
+}
+
+.stop {
+  font-size: 12px;
+  color: #1a73e8;
+}
+
+/* Price */
+.price-block {
+  text-align: right;
+}
+
+.price {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.book-btn {
+  margin-top: 6px;
+  background: transparent;
+  color: #1a73e8;
+  border: 1px solid #1a73e8;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.book-btn:hover {
+  background: #1a73e8;
+  color: #ffffff;
+}

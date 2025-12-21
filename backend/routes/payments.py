@@ -1,43 +1,43 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException
+from sqlmodel import Session, select
 
 from backend.db import get_session
-from backend.model import Payment
-from backend.services.crypto import encrypt
-from backend.routes.auth_dependency import get_current_user , security
+from backend.routes.auth_dependency import get_current_user, security
+from backend.model import Booking, Payment
 
 router = APIRouter(
     prefix="/payments",
-    tags=["Payments"],
-    dependencies=[Depends(get_current_user)]
-
+    tags=["Payments"]
 )
 
-class PayIn(BaseModel):
-    amount: float
-    card_number: str
-    cvv: str
-
-@router.post("/create")
-def create_payment(
-    p: PayIn,
-    user: dict = Depends(get_current_user),  # 🔥 THIS is enough
+# =========================
+# GET PAYMENT BY BOOKING
+# =========================
+@router.get(
+    "/by-booking/{booking_id}",
+    dependencies=[Depends(security)]
+)
+def get_payment_for_booking(
+    booking_id: int,
+    user: dict = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
-    enc_card = encrypt(p.card_number)
-    enc_cvv = encrypt(p.cvv)
+    booking = session.get(Booking, booking_id)
 
-    pay = Payment(
-        Customer_ID=user["user_id"],
-        Amount=p.amount,
-        Card_Last4=p.card_number[-4:],
-        Gateway_Provider="AESGCM",
-        Status="encrypted",
-    )
+    if not booking or booking.Customer_ID != user["user_id"]:
+        raise HTTPException(404, "Booking not found")
 
-    session.add(pay)
-    session.commit()
-    session.refresh(pay)
+    payment = session.exec(
+        select(Payment).where(Payment.Booking_ID == booking_id)
+    ).first()
 
-    return {"payment_id": pay.Payment_ID}
+    if not payment:
+        raise HTTPException(404, "Payment not found")
+
+    return {
+        "booking_id": booking.Booking_ID,
+        "order_id": payment.Gateway_Txn_ID,
+        "status": payment.Status,
+        "amount": payment.Amount,
+        "payment_id": payment.Gateway_Payment_ID,
+    }

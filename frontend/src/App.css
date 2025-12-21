@@ -1,0 +1,108 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&display=swap");
+
+/* GLOBAL */
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; padding: 0; }
+
+body {
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  color: #fff;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* HEADER */
+.header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(6px);
+}
+
+.header-left {
+  font-family: "Playfair Display", serif;
+  font-size: 2rem;
+  letter-spacing: 4px;
+}
+
+.header-right {
+  display: flex;
+  gap: 28px;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  opacity: 0.85;
+}
+
+/* HERO */
+.hero {
+  position: relative;
+  height: 520px;
+  overflow: hidden;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.15),
+    rgba(0,0,0,0.55)
+  );
+  z-index: 5;
+}
+
+/* HERO TEXT */
+.hero-text {
+  position: absolute;
+  left: 6%;
+  bottom: 28px;
+  z-index: 20;
+}
+
+.hero-text h1 {
+  margin: 0;
+  font-family: "Playfair Display", serif;
+  font-size: 3.2rem;
+  font-weight: 400;
+  letter-spacing: 2px;
+  cursor: pointer;
+}
+
+/* SLICK */
+.slick-slider,
+.slick-list,
+.slick-track,
+.slick-slide,
+.slick-slide > div {
+  height: 100%;
+}
+
+.slick-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.slick-prev { display: none !important; }
+
+.slick-next {
+  right: 30px;
+  z-index: 30;
+}
+
+.slick-next:before {
+  content: "→";
+  font-size: 34px;
+  color: #fff;
+  opacity: 0.6;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .hero { height: 460px; }
+  .hero-text h1 { font-size: 2.2rem; }
+  .header { padding: 0 20px; }
+}

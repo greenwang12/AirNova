@@ -1,4 +1,7 @@
 # backend/main.py
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.security import HTTPBearer
@@ -18,6 +21,10 @@ from .routes.price_predict import router as price_predict_router
 from .routes.companies import router as companies_router
 from .routes.weather import router as weather_router
 from .routes.payments import router as payments_router
+from fastapi.middleware.cors import CORSMiddleware
+from .routes import price_signal
+from .routes.travellers import router as travellers_router
+
 
 # ✅ DEFINE SECURITY FIRST
 security = HTTPBearer()
@@ -26,7 +33,6 @@ security = HTTPBearer()
 app = FastAPI(
     title="Flights API",
     version="1.0",
-    openapi_url="/_openapi.json",
     docs_url="/docs",
     redoc_url=None,
 )
@@ -159,10 +165,6 @@ def homepage():
     </body>
     </html>
     """
-# Hide the default /openapi.json
-@app.get("/openapi.json")
-def block_openapi_json():
-    raise HTTPException(status_code=404, detail="Not Found")
 
 # Routers
 app.include_router(auth.router)              # PUBLIC
@@ -176,6 +178,9 @@ app.include_router(price_predict_router)
 app.include_router(companies_router)
 app.include_router(weather_router)
 app.include_router(payments_router)
+app.include_router(price_signal.router)
+app.include_router(travellers_router)        # ✅ ADD THIS
+
 
 # ✅ Swagger JWT setup
 def custom_openapi():
@@ -201,3 +206,12 @@ def custom_openapi():
     return schema
 
 app.openapi = custom_openapi
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
