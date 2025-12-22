@@ -9,8 +9,18 @@ type Flight = {
   Flight_ID: number;
   Dept_Location: string;
   Arr_Location: string;
+
+  Departure_Time: string;
+  Arrival_Time: string;
+  Stops: number;
+
   Price_Per_Seat: number;
+  Cabin_Baggage_Kg: number;
+  Checkin_Baggage_Kg: number;
+
+  Flight_Code?: string;
 };
+
 
 type Gender = "" | "Male" | "Female" | "Other";
 
@@ -115,6 +125,17 @@ export default function BookFlight() {
     nav("/payment");
   };
 
+  const durationMin = useMemo(() => {
+  if (!flight) return 0;
+  return Math.max(
+    0,
+    Math.floor(
+      (new Date(flight.Arrival_Time).getTime() -
+       new Date(flight.Departure_Time).getTime()) / 60000
+    )
+  );
+}, [flight]);
+
   if (!flight) return null;
 
   return (
@@ -135,53 +156,82 @@ export default function BookFlight() {
             </div>
 
             {/* STEP 1 — TRIP */}
-            {step === 0 && (
-              <div className="card trip-card">
+{step === 0 && flight && (
+  <div className="card trip-card">
 
-                <div className="trip-route">
-                  <h2>{flight.Dept_Location} → {flight.Arr_Location}</h2>
-                  <span className="trip-badge">Non-Stop</span>
-                </div>
+    {/* ROUTE */}
+    <div className="trip-route">
+      <h2>{flight.Dept_Location} → {flight.Arr_Location}</h2>
+      {flight.Stops === 0 && <span className="trip-badge">Non-Stop</span>}
+    </div>
 
-                <div className="trip-airline">
-                  <div className="airline-left">
-                    <div className="airline-logo">✈️</div>
-                    <div>
-                      <strong>AirNova</strong>
-                      <p>Economy · AN-102</p>
-                    </div>
-                  </div>
+    {/* DATE + DURATION */}
+    <div className="trip-meta">
+      <span>
+        {new Date(flight.Departure_Time).toLocaleDateString("en-IN", {
+          weekday: "short",
+          day: "2-digit",
+          month: "short"
+        })}
+      </span>
+      <span>
+        · {Math.floor(durationMin / 60)}h {durationMin % 60}m
+      </span>
+    </div>
 
-                  <div className="airline-right">
-                    <p className="price">₹{flight.Price_Per_Seat}</p>
-                    <span className="per-seat">per seat</span>
-                  </div>
-                </div>
+    {/* AIRLINE */}
+    <div className="trip-airline">
+      <div className="airline-left">
+        <div className="airline-logo">✈️</div>
+        <div>
+          <strong>AirNova</strong>
+          <p>Economy · {flight.Flight_Code ?? "AN-101"}</p>
+        </div>
+      </div>
 
-                <div className="trip-timeline">
-                  <div>
-                    <h3>23:40</h3>
-                    <p>{flight.Dept_Location}</p>
-                  </div>
+      <div className="airline-right">
+        <p className="price">₹{flight.Price_Per_Seat}</p>
+        <span className="per-seat">per seat</span>
+      </div>
+    </div>
 
-                  <div className="timeline-line">
-                    <span>2h 10m</span>
-                  </div>
+    {/* TIMELINE */}
+    <div className="trip-timeline">
+      <div>
+        <h3>
+          {new Date(flight.Departure_Time).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit"
+          })}
+        </h3>
+        <p>{flight.Dept_Location}</p>
+      </div>
 
-                  <div>
-                    <h3>01:50</h3>
-                    <p>{flight.Arr_Location}</p>
-                  </div>
-                </div>
+      <div className="timeline-line">
+        {Math.floor(durationMin / 60)}h {durationMin % 60}m
+      </div>
 
-                <div className="trip-info">
-                  <span>🧳 Cabin 7kg</span>
-                  <span>🛄 Check-in 15kg</span>
-                  <span>❌ Cancellation fee applies</span>
-                </div>
+      <div>
+        <h3>
+          {new Date(flight.Arrival_Time).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit"
+          })}
+        </h3>
+        <p>{flight.Arr_Location}</p>
+      </div>
+    </div>
 
-              </div>
-            )}
+    {/* BAGGAGE */}
+    <div className="trip-info">
+      <span>🧳 Cabin {flight.Cabin_Baggage_Kg}kg</span>
+      <span>🛄 Check-in {flight.Checkin_Baggage_Kg}kg</span>
+      <span className="warn">Cancellation fee may apply</span>
+    </div>
+
+  </div>
+)}
+
 
             {/* STEP 2 — TRAVELLERS */}
             {step === 1 && (
@@ -240,63 +290,70 @@ export default function BookFlight() {
                   <p>{selectedSeats.length}/{seatCount}</p>
                 </div>
 
-                <div className="aircraft-wrapper">
-                  <div className="seat-cols">
-                    <span /> A B C <span /> D E F <span />
-                  </div>
+<div className="aircraft-wrapper">
+  <div className="aircraft-scroll">
+    <div className="aircraft-svg-shell">
 
-                  <div className="aircraft-scroll">
-                    <div className="aircraft-svg-shell">
+      <svg viewBox="0 0 300 900" className="aircraft-svg">
+        <path
+          d="M150 0 C200 30 260 90 280 180
+             V720 C260 820 200 880 150 900
+             C100 880 40 820 20 720
+             V180 C40 90 100 30 150 0 Z"
+          fill="#fff"
+        />
+      </svg>
 
-                      <svg viewBox="0 0 300 900" className="aircraft-svg">
-                        <path
-                          d="M150 0 C200 30 260 90 280 180
-                             V720 C260 820 200 880 150 900
-                             C100 880 40 820 20 720
-                             V180 C40 90 100 30 150 0 Z"
-                          fill="#fff"
-                        />
-                      </svg>
+      <div className="aircraft-seat-layer">
 
-                      <div className="aircraft-seat-layer">
-                        {Array.from({ length: 30 }).map((_, r) => (
-                          <div key={r} className="seat-row">
-                            <span className="row-no">{r + 1}</span>
-                            {["A", "B", "C"].map(c => (
-                              <div
-                                key={c}
-                                className={`seat ${seatClass(r)} ${
-                                  selectedSeats.includes(`${r + 1}${c}`)
-                                    ? "active"
-                                    : ""
-                                }`}
-                                onClick={() =>
-                                  toggleSeat(`${r + 1}${c}`)
-                                }
-                              />
-                            ))}
-                            <div className="aisle" />
-                            {["D", "E", "F"].map(c => (
-                              <div
-                                key={c}
-                                className={`seat ${seatClass(r)} ${
-                                  selectedSeats.includes(`${r + 1}${c}`)
-                                    ? "active"
-                                    : ""
-                                }`}
-                                onClick={() =>
-                                  toggleSeat(`${r + 1}${c}`)
-                                }
-                              />
-                            ))}
-                            <span className="row-no">{r + 1}</span>
-                          </div>
-                        ))}
-                      </div>
+        {/* COLUMN LABELS — INSIDE AIRCRAFT */}
+       <div className="seat-cols">
+  <span></span>
+  <span>A</span>
+  <span>B</span>
+  <span>C</span>
+  <span></span>
+  <span>D</span>
+  <span>E</span>
+  <span>F</span>
+  <span></span>
+</div>
 
-                    </div>
-                  </div>
-                </div>
+
+        {Array.from({ length: 30 }).map((_, r) => (
+          <div key={r} className="seat-row">
+            <span className="row-no">{r + 1}</span>
+
+            {["A", "B", "C"].map(c => (
+              <div
+                key={c}
+                className={`seat ${seatClass(r)} ${
+                  selectedSeats.includes(`${r + 1}${c}`) ? "active" : ""
+                }`}
+                onClick={() => toggleSeat(`${r + 1}${c}`)}
+              />
+            ))}
+
+            <div className="aisle" />
+
+            {["D", "E", "F"].map(c => (
+              <div
+                key={c}
+                className={`seat ${seatClass(r)} ${
+                  selectedSeats.includes(`${r + 1}${c}`) ? "active" : ""
+                }`}
+                onClick={() => toggleSeat(`${r + 1}${c}`)}
+              />
+            ))}
+
+            <span className="row-no">{r + 1}</span>
+          </div>
+        ))}
+      </div>
+
+    </div>
+  </div>
+</div>
               </div>
             )}
 

@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 from sqlalchemy.exc import SQLAlchemyError
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from datetime import datetime
 import random
 
@@ -39,6 +39,8 @@ class BookingService:
         customer_id: int,
         flight_id: int,
         seats: int = 1,
+        selected_seats: Optional[List[str]] = None,
+        extra_baggage_kg: int = 0,
         currency: str = "INR",
         idempotency_key: Optional[str] = None
     ) -> Dict:
@@ -53,10 +55,50 @@ class BookingService:
         if flight.Available_Seats < seats:
             raise ValueError("Not enough seats available")
 
+        # ---------------------------
+        # BASE PRICE
+        # ---------------------------
         price_per_seat = float(flight.Price_Per_Seat)
-        total_amount = price_per_seat * seats
+        base_total = price_per_seat * seats
+
+        # ---------------------------
+        # SEAT PRICING
+        # ---------------------------
+        # ---------------------------
+        seat_total = 0
+        if selected_seats:
+            for s in selected_seats:
+                row = int(s[:-1])   # "12A" → 12
+                col = s[-1]         # "A"
+        # row-based pricing (0 for all, kept for future)
+                if row < 5:
+                    seat_total += flight.Seat_Pricing.get("high", 0)
+                elif row < 15:
+                    seat_total += flight.Seat_Pricing.get("low", 0)
+                else:
+                    seat_total += flight.Seat_Pricing.get("free", 0)
+
+        # column-based pricing
+                if col in ("A", "F"):
+                    seat_total += 400
+                elif col in ("C", "D"):
+                    seat_total += 250
+
+
+        # ---------------------------
+        # BAGGAGE PRICING
+        # ---------------------------
+        baggage_total = max(0, extra_baggage_kg) * 300
+
+        # ---------------------------
+        # FINAL TOTAL
+        # ---------------------------
+        total_amount = base_total + seat_total + baggage_total
         total_amount_paise = int(total_amount * 100)
 
+        # ---------------------------
+        # CREATE BOOKING
+        # ---------------------------
         booking = Booking(
             Customer_ID=customer_id,
             Flight_ID=flight_id,
@@ -68,6 +110,9 @@ class BookingService:
         session.commit()
         session.refresh(booking)
 
+        # ---------------------------
+        # CREATE PAYMENT ORDER
+        # ---------------------------
         order = PaymentService.create_order(
             amount_paise=total_amount_paise,
             currency=currency,
@@ -85,12 +130,10 @@ class BookingService:
             Company_ID=flight.Company_ID,
             Amount=total_amount,
             Tax=0.0,
-            Payment_Date=datetime.utcnow(),
-            Payment_Type="card",
             Gateway_Provider=_fake_gateway() if USE_FAKE_PAYMENTS else "razorpay",
             Gateway_Txn_ID=order["order_id"],
             Status="authorized" if USE_FAKE_PAYMENTS else "created",
-            Idempotency_Key=idempotency_key
+            Created_At=datetime.utcnow()
         )
 
         booking.Razorpay_Order_ID = order["order_id"]
@@ -126,7 +169,6 @@ class BookingService:
         if not payment:
             raise ValueError("Local payment record not found")
 
-        # Prevent double capture
         if payment.Status == "captured":
             return payment
 
@@ -134,7 +176,6 @@ class BookingService:
         if not booking:
             raise ValueError("Booking not found")
 
-        # ❌ Ignore payment if booking already cancelled
         if booking.Status == BookingStatus.CANCELLED:
             return payment
 

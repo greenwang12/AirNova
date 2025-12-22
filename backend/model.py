@@ -62,7 +62,7 @@ class Customer(SQLModel, table=True):
 
 
 # =========================
-# FLIGHT
+# FLIGHT  ✅ FIXED
 # =========================
 class Flight(SQLModel, table=True):
     __tablename__ = "flight"
@@ -83,6 +83,19 @@ class Flight(SQLModel, table=True):
     Price_Per_Seat: float = 1000.0
     Stops: int = 0
     Status: FlightStatus = Field(default=FlightStatus.ON_TIME)
+
+    # ✅ NEW FIELDS (PROPERLY INSIDE CLASS)
+    Cabin_Baggage_Kg: int = Field(default=7)
+    Checkin_Baggage_Kg: int = Field(default=15)
+
+    Seat_Pricing: Dict = Field(
+        default_factory=lambda: {
+            "high": 800,
+            "low": 300,
+            "free": 0
+        },
+        sa_column=Column(SAJSON)
+    )
 
     company: Optional["Company"] = Relationship(back_populates="flights")
     bookings: List["Booking"] = Relationship(back_populates="flight")
@@ -155,7 +168,7 @@ class Traveller(SQLModel, table=True):
 
 
 # =========================
-# GROUP BOOKING (FIX)
+# GROUP BOOKING
 # =========================
 class GroupBooking(SQLModel, table=True):
     __tablename__ = "group_booking"

@@ -1,5 +1,8 @@
 :root {
-  --bg: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+  --bg:
+  radial-gradient(1200px 700px at 15% 25%, #9fb6d6 0%, #6f86a6 35%, #2b3b57 65%, #0b1628 85%),
+  radial-gradient(1200px 800px at 90% 90%, #e7d3df 0%, #b7a6bb 40%, rgba(0,0,0,0) 80%);
+
   --glass: rgba(255,255,255,0.08);
   --accent: #00bcd4;
   --text: #ffffff;

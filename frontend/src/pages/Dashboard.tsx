@@ -1,156 +1,208 @@
 import HeroSlider from "../components/HeroSlider";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import api from "../api/api";
-
-type RecommendedRoute = [route: string, count: number];
 
 export default function Dashboard() {
   const nav = useNavigate();
-  const [routes, setRoutes] = useState<RecommendedRoute[]>([]);
-
-  // 👇 read logged-in user (set in Login.tsx)
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-
-  useEffect(() => {
-    if (!user?.id) return;
-
-    api
-      .get(`/recommendations/top-routes/${user.id}`)
-      .then(res => setRoutes(res.data))
-      .catch(() => setRoutes([]));
-  }, [user?.id]);
 
   return (
     <>
-      {/* HERO */}
-      <div className="hero">
+      <section className="hero">
         <HeroSlider />
+        <div className="hero-overlay" />
 
-        <p className="hero-tagline">Your journey starts here.</p>
-
-        <div className="hero-text">
-          <h1 onClick={() => nav("/SearchFlights")}>Search Flights</h1>
+        <div className="hero-content">
+          <h1>Your journey starts here.</h1>
+          <button onClick={() => nav("/SearchFlights")}>
+            Search Flights
+          </button>
         </div>
-      </div>
 
-      {/* RECOMMENDATIONS */}
-      {routes.length > 0 && (
-        <section className="reco-wrap">
-          <h2 className="reco-title">Recommended for you</h2>
-
-          <div className="reco-scroll">
-            {routes.map(([route, count]) => (
-              <div
-                key={route}
-                className="reco-card"
-                onClick={() => nav(`/SearchFlights?route=${route}`)}
-              >
-                <span className="route">{route}</span>
-                <span className="count">{count} trips</span>
-              </div>
-            ))}
+        {/* FEATURE CARDS */}
+        <div className="hero-cards">
+          <div className="hero-card" onClick={() => nav("/SearchFlights")}>
+            ✈️
+            <h3>Smart Flight Search</h3>
+            <p>Find the best routes instantly.</p>
           </div>
-        </section>
-      )}
 
-      {/* STYLES */}
+          <div className="hero-card" onClick={() => nav("/PricePrediction")}>
+            💰
+            <h3>Price Prediction</h3>
+            <p>Know when to book or wait.</p>
+          </div>
+
+          <div className="hero-card" onClick={() => nav("/Weather")}>
+            ☁️
+            <h3>Weather Insights</h3>
+            <p>Plan smarter with aviation data.</p>
+          </div>
+
+          <div className="hero-card" onClick={() => nav("/Trips")}>
+            📍
+            <h3>Trip Tracking</h3>
+            <p>Manage all your trips.</p>
+          </div>
+        </div>
+
+        <div className="hero-bottom-fade" />
+      </section>
+
       <style>{`
-        @import url("https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@1&family=Playfair+Display:ital@1&display=swap");
+        @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&display=swap");
 
         .hero {
           position: relative;
-          height: 520px;
+          height: 720px;
           overflow: hidden;
+          background: #000;
         }
 
-        .hero-tagline {
+        .hero,
+        .hero .slick-list,
+        .hero .slick-track,
+        .hero .slick-slide {
+          height: 100%;
+        }
+
+        .hero img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .hero-overlay {
           position: absolute;
-          bottom: 120px;
-          left: 32px;
-          z-index: 20;
-          margin: 0;
-          font-family: "Playfair Display", serif;
-          font-size: 60px;
-          letter-spacing: 1.5px;
-          font-style: italic;
-          opacity: 0.85;
-        }
-
-        .hero-text {
-          position: absolute;
-          bottom: 30px;
-          left: 25px;
-          z-index: 20;
-          pointer-events: none;
-        }
-
-        .hero-text h1 {
-          pointer-events: auto;
-          font-family: "Cormorant Garamond", serif;
-          font-weight: 200;
-          font-size: 25px;
-          letter-spacing: 2px;
-          background: rgba(0,0,0,0.8);
-          padding: 12px 25px;
-          border-radius: 999px;
-          color: white;
-          cursor: pointer;
-          transition: transform .2s ease;
-        }
-
-        .hero-text h1:hover {
-          transform: scale(1.05);
-        }
-
-        .reco-wrap {
-          padding: 50px 30px;
+          inset: 0;
           background: linear-gradient(
             to bottom,
-            rgba(255,255,255,0.95),
-            rgba(245,247,250,0.95)
+            rgba(0,0,0,.55),
+            rgba(0,0,0,.2),
+            rgba(0,0,0,.75)
           );
+          z-index: 5;
         }
 
-        .reco-title {
+        .hero-bottom-fade {
+          position: absolute;
+          bottom: 0;
+          height: 180px;
+          width: 100%;
+          background: linear-gradient(
+            to bottom,
+            rgba(15,23,42,0),
+            rgba(15,23,42,.95)
+          );
+          z-index: 6;
+        }
+
+        .hero-content {
+          position: absolute;
+          left: 56px;
+          top: 48%;
+          transform: translateY(-50%);
+          z-index: 10;
+          max-width: 520px;
+        }
+
+        .hero-content h1 {
           font-family: "Playfair Display", serif;
+          font-size: 56px;
           font-style: italic;
-          font-size: 30px;
-          margin-bottom: 22px;
+          color: white;
+          margin-bottom: 24px;
+          text-shadow: 0 12px 30px rgba(0,0,0,.5);
         }
 
-        .reco-scroll {
-          display: flex;
-          gap: 20px;
-          overflow-x: auto;
-          scroll-snap-type: x mandatory;
-        }
-
-        .reco-card {
-          min-width: 200px;
-          padding: 18px 22px;
-          border-radius: 18px;
+        .hero-content button {
+          padding: 14px 36px;
+          border-radius: 999px;
+          border: none;
+          font-size: 16px;
+          color: white;
           cursor: pointer;
-          scroll-snap-align: start;
-          background: rgba(255,255,255,0.65);
-          backdrop-filter: blur(12px);
-          box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+          background: linear-gradient(135deg,#020617,#0f172a);
+          box-shadow: 0 20px 45px rgba(0,0,0,.45);
           transition: transform .25s ease, box-shadow .25s ease;
         }
 
-        .reco-card:hover {
-          transform: translateY(-6px) scale(1.04);
-          box-shadow: 0 18px 40px rgba(0,0,0,0.15);
+        .hero-content button:hover {
+          transform: translateY(-2px) scale(1.05);
+          box-shadow: 0 30px 70px rgba(0,0,0,.65);
         }
 
-        .reco-card .route {
-          font-size: 20px;
+        /* blended cards container */
+        .hero-cards {
+          position: absolute;
+          bottom: 72px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: calc(100% - 120px);
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 26px;
+          padding: 32px 24px;
+          border-radius: 36px;
+          background: linear-gradient(
+            to top,
+            rgba(15,23,42,.6),
+            rgba(15,23,42,0)
+          );
+          z-index: 15;
+        }
+
+        /* glass cards */
+        .hero-card {
+          padding: 30px 24px;
+          border-radius: 26px;
+          text-align: center;
+          cursor: pointer;
+          color: white;
+          opacity: 69%;
+          background: linear-gradient(
+            135deg,
+            rgba(255,255,255,.28),
+            rgba(255,255,255,.1)
+          );
+          backdrop-filter: blur(22px) saturate(140%);
+          border: 1px solid rgba(255,255,255,.18);
+          box-shadow:
+            0 25px 60px rgba(0,0,0,.45),
+            inset 0 1px 1px rgba(255,255,255,.25);
+          transition: transform .3s ease, box-shadow .3s ease;
+        }
+
+        .hero-card:hover {
+          transform: translateY(-8px) scale(1.04);
+          box-shadow: 0 40px 90px rgba(0,0,0,.6);
+        }
+
+        .hero-card h3 {
+          margin: 12px 0 6px;
+          font-size: 18px;
           font-weight: 600;
+          color: #f8fafc;
         }
 
-        .reco-card .count {
-          font-size: 13px;
-          opacity: 0.6;
+        .hero-card p {
+          font-size: 14px;
+          margin: 0;
+          color: rgba(255,255,255,.75);
+        }
+
+        @media (max-width: 1100px) {
+          .hero-cards {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        @media (max-width: 640px) {
+          .hero {
+            height: 780px;
+          }
+          .hero-cards {
+            grid-template-columns: 1fr;
+            bottom: 32px;
+          }
         }
       `}</style>
     </>

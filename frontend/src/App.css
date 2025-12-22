@@ -106,3 +106,10 @@ body {
   .hero-text h1 { font-size: 2.2rem; }
   .header { padding: 0 20px; }
 }
+
+.flight-header,
+.flight-card {
+  display: grid;
+  grid-template-columns: 260px 120px 160px 120px 180px;
+  align-items: center;
+}

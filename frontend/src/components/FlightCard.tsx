@@ -1,7 +1,6 @@
 import "./Flightcard.css";
 import { useNavigate } from "react-router-dom";
 
-/* ================= TYPES ================= */
 type Flight = {
   Flight_ID: number;
   Flight_Code: string;
@@ -12,12 +11,9 @@ type Flight = {
   Price_Per_Seat: number;
   Stops: number;
   Available_Seats: number;
-  company?: {
-    Name: string;
-  };
+  company?: { Name: string };
 };
 
-/* ================= LOGO MAPPING ================= */
 const airlineLogos: Record<string, string> = {
   "Air India": "/logos/air-india.jpg",
   "Lufthansa": "/logos/Lufthansa.png",
@@ -34,16 +30,18 @@ const airlineLogos: Record<string, string> = {
   "American Airlines": "/logos/americanairlines.jpg",
 };
 
-/* ================= COMPONENT ================= */
+const timeOnly = (dt: string) => dt.slice(11, 16);
+
+const durationHM = (d: string, a: string) => {
+  const [dh, dm] = d.slice(11, 16).split(":").map(Number);
+  const [ah, am] = a.slice(11, 16).split(":").map(Number);
+  let mins = ah * 60 + am - (dh * 60 + dm);
+  if (mins < 0) mins += 1440;
+  return `${Math.floor(mins / 60)} h ${mins % 60} m`;
+};
+
 export default function FlightCard({ f }: { f: Flight }) {
   const nav = useNavigate();
-
-  // Time calculations
-  const dep = new Date(f.Departure_Time);
-  const arr = new Date(f.Arrival_Time);
-  const durMin = Math.floor((arr.getTime() - dep.getTime()) / 60000);
-  const h = Math.floor(durMin / 60);
-  const m = durMin % 60;
 
   return (
     <div className="flight-card">
@@ -61,39 +59,37 @@ export default function FlightCard({ f }: { f: Flight }) {
       </div>
 
       {/* Departure */}
-      <div className="time-block">
-        <div className="time">
-          {dep.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-        </div>
+      <div className="time-col left">
+        <div className="time">{timeOnly(f.Departure_Time)}</div>
         <div className="city">{f.Dept_Location}</div>
       </div>
 
       {/* Duration */}
-      <div className="duration">
-        <div className="dur">{h}h {m}m</div>
-        <div className="stop">{f.Stops === 0 ? "Non-stop" : `${f.Stops} stop`}</div>
+      <div className="mid-col">
+        <div className="dur">
+          {durationHM(f.Departure_Time, f.Arrival_Time)}
+        </div>
+        <div className="bar" />
+        <div className="stop">
+          {f.Stops === 0 ? "Non stop" : `${f.Stops} stop`}
+        </div>
       </div>
 
       {/* Arrival */}
-      <div className="time-block">
-        <div className="time">
-          {arr.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-        </div>
+      <div className="time-col right">
+        <div className="time">{timeOnly(f.Arrival_Time)}</div>
         <div className="city">{f.Arr_Location}</div>
       </div>
 
-      {/* Price + Booking */}
+      {/* Price */}
       <div className="price-block">
         <div className="price">₹ {f.Price_Per_Seat.toLocaleString()}</div>
-
-        {/* Navigate to booking page */}
-        <button className="book-btn" onClick={() => nav(`/book/${f.Flight_ID}`)}>
+        <button
+          className="book-btn"
+          onClick={() => nav(`/book/${f.Flight_ID}`)}
+        >
           BOOK NOW
         </button>
-
-        {f.Available_Seats <= 5 && (
-          <div className="seats-left">⚠ {f.Available_Seats} seats left</div>
-        )}
       </div>
     </div>
   );
